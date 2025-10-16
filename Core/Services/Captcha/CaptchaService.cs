@@ -46,7 +46,6 @@ public sealed class CaptchaService {
         await _concurrencySemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         try {
-            await WaitForRateLimitAsync(cancellationToken).ConfigureAwait(false);
             return await ExecuteWithRetryAsync(cancellationToken, request).ConfigureAwait(false);
         } finally {
             _concurrencySemaphore.Release();
@@ -59,6 +58,7 @@ public sealed class CaptchaService {
 
         while (true) {
             cancellationToken.ThrowIfCancellationRequested();
+            await WaitForRateLimitAsync(cancellationToken).ConfigureAwait(false);
             attempt++;
 
             try {
