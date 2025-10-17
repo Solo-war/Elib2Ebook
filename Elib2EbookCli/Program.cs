@@ -6,6 +6,7 @@ using Core.Configs;
 using Core.Extensions;
 using Core.Logic.Builders;
 using Core.Misc;
+using Core.Services.Captcha;
 using Microsoft.Extensions.Logging;
 
 namespace Elib2EbookCli; 
@@ -44,7 +45,18 @@ internal static class Program {
                 }
             })
             .WithParsedAsync(async options => {
-                using var getterConfig = BookGetterConfig.GetDefault(options, logger); 
+                var captchaProvider = Environment.GetEnvironmentVariable("CAPTCHA_PROVIDER");
+
+                if (captchaProvider?.Equals("external", StringComparison.OrdinalIgnoreCase) == true) {
+                    logger.LogInformation("⚠️ Использовать внешнего провайдера капчи разрешено только для собственных сайтов или при наличии письменного согласия владельца ресурса.");
+                }
+
+                ICaptchaPrompt? captchaPrompt = null;
+                if (captchaProvider?.Equals("manual", StringComparison.OrdinalIgnoreCase) == true) {
+                    captchaPrompt = new ConsoleCaptchaPrompt();
+                }
+
+                using var getterConfig = BookGetterConfig.GetDefault(options, logger, captchaPrompt);
                 using var getter = GetterProvider.Get(getterConfig, options.Url.First().AsUri());
 
                 try {

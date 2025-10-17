@@ -31,19 +31,22 @@ var token = await captchaService.SolveCaptchaAsync(
 
 | Переменная | Назначение | Значение по умолчанию |
 | --- | --- | --- |
-| `CAPTCHA_PROVIDER` | Провайдер (`mock`, `2captcha`, `anticaptcha`) | `mock` |
+| `CAPTCHA_PROVIDER` | Провайдер (`mock`, `manual`, `external`, `2captcha`, `anticaptcha`) | `mock` |
 | `CAPTCHA_API_KEY` | API-ключ провайдера | — |
 | `CAPTCHA_PROVIDER_URL` | Пользовательский базовый URL API | `https://api.2captcha.com/` |
 | `CAPTCHA_MAX_PARALLEL_TASKS` | Максимум параллельных задач | `2` |
 | `CAPTCHA_REQUESTS_PER_WINDOW` / `CAPTCHA_REQUESTS_PER_MINUTE` | Лимит запросов за окно | `10` |
 | `CAPTCHA_RATE_LIMIT_WINDOW_SECONDS` | Размер окна в секундах | `60` |
 | `CAPTCHA_REQUEST_TIMEOUT_SECONDS` | Таймаут HTTP-запросов | `120` |
-| `CAPTCHA_POLLING_INTERVAL_SECONDS` | Интервал опроса результата | `5` |
+| `CAPTCHA_POLL_INTERVAL_SEC` / `CAPTCHA_POLLING_INTERVAL_SECONDS` | Интервал опроса результата | `5` |
+| `CAPTCHA_TIMEOUT_SEC` | Таймаут ожидания решения | `120` |
 | `CAPTCHA_MAX_RETRY_ATTEMPTS` | Кол-во попыток решения | `3` |
 | `CAPTCHA_INITIAL_RETRY_DELAY_SECONDS` | Начальная задержка перед ретраем | `2` |
 | `CAPTCHA_RETRY_BACKOFF` | Множитель экспоненциального backoff | `2.0` |
 | `CAPTCHA_MOCK_RESPONSE` | Ответ mock-провайдера | `mock-solution` |
 | `ALLOW_CAPTCHA_IN_PROD` | Разрешить выполнение в production | `false` |
+| `ALLOW_EXTERNAL_CAPTCHA_SOLVER` | Разрешить обращения к внешним сервисам | `false` |
+| `ALLOWED_CAPTCHA_DOMAINS` | Разрешённые домены для внешнего провайдера (через запятую) | — |
 
 > 🔐 Для прод-окружений необходимо явно выставить `ALLOW_CAPTCHA_IN_PROD=true` и документировать письменное разрешение владельца ресурса.
 
@@ -53,7 +56,13 @@ var token = await captchaService.SolveCaptchaAsync(
 
 Используется по умолчанию. Возвращает значение `CAPTCHA_MOCK_RESPONSE`, не выполняет сетевых запросов и подходит для тестов и локальной разработки.
 
-### 2Captcha / AntiCaptcha
+### Manual
+
+Используется для ручного ввода (например, в dev-интерфейсе). Требует реализации `ICaptchaPrompt`.
+
+### External (2Captcha / AntiCaptcha)
+
+Использует внешний сервис распознавания (по умолчанию 2Captcha). Включается только при `ALLOW_EXTERNAL_CAPTCHA_SOLVER=true` и указанных разрешённых доменах.
 
 Выполняет следующие шаги:
 
