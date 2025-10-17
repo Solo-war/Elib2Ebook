@@ -95,7 +95,9 @@
 
 Portable версии консольной утилиты запускаются без установленного NET Runtime. За настройку сборки Portalbe версий большая благодарность [@alfeg](https://github.com/alfeg)
 
-Для запуска не Portable версии консольной утилиты необходим установленный NET Runtime версии 9 или выше, который можно скачать с сайта Microsoft [здесь (на английском)](https://dotnet.microsoft.com/en-us/download/dotnet/9.0)
+Для запуска не Portable версии консольной утилиты необходим установленный NET Runtime версии 9 или выше, который можно скачать с сайта Microsoft [здесь (на английском)](https://dotnet.microsoft.com/en-us/download/dotnet/9.0).
+
+Если при запуске команды `dotnet` система сообщает, что она «не является внутренней или внешней командой», установите [.NET SDK](https://dotnet.microsoft.com/en-us/download) и перезапустите терминал. На Windows убедитесь, что установщик добавил `dotnet.exe` в переменную окружения `PATH` — это можно проверить через **Параметры системы → Дополнительные параметры → Переменные среды**.
 
 Web версия доступна для установки через [docker](https://www.docker.com)
 
@@ -165,6 +167,13 @@ docker run --rm -v <путь_к_папке_для_сохранения>:/Save on
 ```
 docker run --rm -p 8080:8080 onlyfart/elib2ebookweb
 ```
+
+### Типичные ошибки при запуске Docker
+
+Если при выполнении `docker pull` или `docker run` появляется сообщение `this error may indicate that the docker daemon is not running`,
+убедитесь, что служба Docker Desktop запущена. На Windows это можно сделать из меню **Start → Docker Desktop**. После запуска дождитесь
+пока статус изменится на «Docker Desktop is running» и повторите команду. Дополнительно проверьте, что локальной учетной записи разрешено
+использовать Docker.
 
 ## Скриншоты
 <img width="819" alt="image" src="https://github.com/user-attachments/assets/05acc9fd-3cff-4137-af14-5826193f693f">
