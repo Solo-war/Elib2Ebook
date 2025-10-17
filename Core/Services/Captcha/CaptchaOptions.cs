@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Core.Services.Captcha;
 
@@ -27,6 +28,12 @@ public sealed record CaptchaOptions {
 
     public bool AllowCaptchaInProd { get; init; }
 
+    public bool AllowExternalSolver { get; init; }
+
+    public IReadOnlyCollection<string> AllowedDomains { get; init; } = Array.Empty<string>();
+
+    public TimeSpan CaptchaTimeout { get; init; } = TimeSpan.FromMinutes(2);
+
     public string MockSolution { get; init; } = "mock-solution";
 
     public static CaptchaOptions FromEnvironment() {
@@ -52,20 +59,40 @@ public sealed record CaptchaOptions {
             requestsPerWindow = ReadInt("CAPTCHA_REQUESTS_PER_MINUTE", requestsPerWindow);
         }
 
+        var pollingInterval = ReadTimeSpanSeconds("CAPTCHA_POLL_INTERVAL_SEC",
+            ReadTimeSpanSeconds("CAPTCHA_POLLING_INTERVAL_SECONDS", options.PollingInterval));
+
+        var timeout = ReadTimeSpanSeconds("CAPTCHA_TIMEOUT_SEC", options.CaptchaTimeout);
+
+        var allowedDomains = ReadList("ALLOWED_CAPTCHA_DOMAINS");
+
         options = options with {
             MaxParallelTasks = ReadInt("CAPTCHA_MAX_PARALLEL_TASKS", options.MaxParallelTasks),
             RequestsPerWindow = requestsPerWindow,
             RateLimitWindow = ReadTimeSpanSeconds("CAPTCHA_RATE_LIMIT_WINDOW_SECONDS", options.RateLimitWindow),
             RequestTimeout = ReadTimeSpanSeconds("CAPTCHA_REQUEST_TIMEOUT_SECONDS", options.RequestTimeout),
-            PollingInterval = ReadTimeSpanSeconds("CAPTCHA_POLLING_INTERVAL_SECONDS", options.PollingInterval),
+            PollingInterval = pollingInterval,
             MaxRetryAttempts = ReadInt("CAPTCHA_MAX_RETRY_ATTEMPTS", options.MaxRetryAttempts),
             InitialRetryDelay = ReadTimeSpanSeconds("CAPTCHA_INITIAL_RETRY_DELAY_SECONDS", options.InitialRetryDelay),
             RetryBackoffFactor = ReadDouble("CAPTCHA_RETRY_BACKOFF", options.RetryBackoffFactor),
             AllowCaptchaInProd = ReadBool("ALLOW_CAPTCHA_IN_PROD", options.AllowCaptchaInProd),
+            AllowExternalSolver = ReadBool("ALLOW_EXTERNAL_CAPTCHA_SOLVER", options.AllowExternalSolver),
+            CaptchaTimeout = timeout,
+            AllowedDomains = allowedDomains,
             MockSolution = ReadString("CAPTCHA_MOCK_RESPONSE", options.MockSolution)
         };
 
         return options;
+    }
+
+    private static IReadOnlyCollection<string> ReadList(string name) {
+        var value = Environment.GetEnvironmentVariable(name);
+        if (string.IsNullOrWhiteSpace(value)) {
+            return Array.Empty<string>();
+        }
+
+        return value
+            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
     }
 
     private static string ReadString(string name, string current) {

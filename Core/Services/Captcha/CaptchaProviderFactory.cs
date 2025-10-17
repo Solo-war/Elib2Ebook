@@ -15,6 +15,9 @@ public static class CaptchaProviderFactory {
         }
 
         var providerName = options.Provider?.Trim().ToLowerInvariant() ?? "mock";
+        if (providerName == "external") {
+            providerName = "2captcha";
+        }
         return providerName switch {
             "2captcha" => new TwoCaptchaProvider(options, logger, httpClient ?? CreateHttpClient(options)),
             "anticaptcha" => new TwoCaptchaProvider(options, logger, httpClient ?? CreateHttpClient(options)),

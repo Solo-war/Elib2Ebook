@@ -5,6 +5,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Core.Extensions;
 using Core.Misc.TempFolder;
+using Core.Net.Politeness;
+using Core.Services.Captcha;
 using FlareSolverrSharp;
 using Microsoft.Extensions.Logging;
 
@@ -78,16 +80,16 @@ public class BookGetterConfig : IDisposable {
         TempFolder?.Dispose();
     }
     
-    public static BookGetterConfig GetDefault(Options options, ILogger logger) {
+    public static BookGetterConfig GetDefault(Options options, ILogger logger, ICaptchaPrompt? captchaPrompt = null) {
         var cookieContainer = new CookieContainer();
-        var client = GetClient(options, cookieContainer, logger);
+        var client = GetClient(options, cookieContainer, logger, captchaPrompt);
 
-        return new BookGetterConfig(options, client, cookieContainer, TempFolderFactory.Create(options.TempPath), logger); 
+        return new BookGetterConfig(options, client, cookieContainer, TempFolderFactory.Create(options.TempPath), logger);
     }
-    
-    private static HttpClient GetClient(Options options, CookieContainer container, ILogger logger) {
+
+    private static HttpClient GetClient(Options options, CookieContainer container, ILogger logger, ICaptchaPrompt? captchaPrompt) {
         var handler = new RedirectHandler(logger) {
-            AutomaticDecompression = DecompressionMethods.GZip | 
+            AutomaticDecompression = DecompressionMethods.GZip |
                                      DecompressionMethods.Deflate |
                                      DecompressionMethods.Brotli,
             ServerCertificateCustomValidationCallback = (_, _, _, _) => true,
@@ -102,26 +104,30 @@ public class BookGetterConfig : IDisposable {
             handler.UseProxy = true;
         }
 
+        HttpMessageHandler pipeline = handler;
+
         if (!string.IsNullOrWhiteSpace(options.Flare)) {
             var chandler = new ClearanceHandler(options.Flare) {
                 MaxTimeout = options.Timeout * 1000,
                 InnerHandler = handler
             };
-            
+
             if (!string.IsNullOrEmpty(options.Proxy)) {
                 chandler.ProxyUrl = options.Proxy;
             }
-            
-            var cclient = new HttpClient(chandler);
-            cclient.Timeout = TimeSpan.FromSeconds(options.Timeout);
-        
-            return cclient;
+
+            pipeline = chandler;
         }
 
-        var client = new HttpClient(handler);
-      
+        var captchaOptions = CaptchaOptions.FromEnvironment();
+        var captchaSolver = CaptchaSolverFactory.Create(captchaOptions, logger, captchaPrompt);
+        var politenessOptions = PolitenessOptions.FromEnvironment();
+
+        var politenessHandler = new PoliteHttpMessageHandler(pipeline, politenessOptions, captchaSolver, logger);
+        var client = new HttpClient(politenessHandler);
+
         client.Timeout = TimeSpan.FromSeconds(options.Timeout);
-        
+
         return client;
     }
 }
